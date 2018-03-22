@@ -4,6 +4,7 @@ import pybake.server
 from pybake.server import BakeProvider
 
 mid = MargoInstance('tcp')
+mid.enable_remote_shutdown()
 mplex_id = 42
 print "Server running at address "+str(mid.addr())+"with mplex_id="+str(mplex_id)
 

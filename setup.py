@@ -14,10 +14,15 @@ pybake_server_module = Extension('_pybakeserver', ["pybake/src/server.cpp"],
 		           libraries=['boost_python','margo','bake-server'],
 			   include_dirs=['.'],
 			   depends=[])
+
+pybake_client_module = Extension('_pybakeclient', ["pybake/src/client.cpp"],
+		           libraries=['boost_python','margo','bake-client'],
+			   include_dirs=['.'],
+			   depends=[])
 setup(name='pybake',
       version='0.1',
       author='Matthieu Dorier',
       description="""Python binding for BAKE""",      
-      ext_modules=[ pybake_server_module ],
+      ext_modules=[ pybake_server_module, pybake_client_module ],
       packages=['pybake']
      )
