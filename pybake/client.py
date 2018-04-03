@@ -8,8 +8,8 @@ class BakeClient():
 	def __init__(self, mid):
 		self._client = _pybakeclient.client_init(mid._mid)
 
-	def create_provider_handle(self, addr, mplex_id):
-		ph = _pybakeclient.provider_handle_create(self._client, addr.get_hg_addr(), mplex_id)
+	def create_provider_handle(self, addr, provider_id):
+		ph = _pybakeclient.provider_handle_create(self._client, addr.get_hg_addr(), provider_id)
 		return BakeProviderHandle(ph)
 
 	def shutdown_service(self, addr):
