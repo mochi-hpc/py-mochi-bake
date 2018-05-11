@@ -40,13 +40,13 @@ static bake_target_id_t pybake_provider_add_storage_target(
                 provider, target_name.c_str(), &target_id);
     return target_id;
 }
-
+#if 0
 static std::string pybake_target_id_to_string(bake_target_id_t tid) {
     char id[37];
     uuid_unparse(tid.id, id);
     return std::string(id);
 }
-
+#endif
 static bool pybake_provider_remove_storage_target(
         bake_provider_t provider,
         bake_target_id_t target_id)
@@ -90,10 +90,10 @@ BOOST_PYTHON_MODULE(_pybakeserver)
 {
 #define ret_policy_opaque bpl::return_value_policy<bpl::return_opaque_pointer>()
 
+    bpl::import("_pybaketarget");
     bpl::opaque<bake_server_context_t>();
-    bpl::class_<bake_target_id_t>("bake_target_id", bpl::no_init)
-        .def("__str__", pybake_target_id_to_string);
-    bpl::class_<bake_region_id_t>("bake_region_id", bpl::no_init);
+//    bpl::class_<bake_target_id_t>("bake_target_id", bpl::no_init)
+//        .def("__str__", pybake_target_id_to_string);
     bpl::def("register", &pybake_provider_register, ret_policy_opaque);
     bpl::def("add_storage_target", &pybake_provider_add_storage_target);
     bpl::def("remove_storage_target", &pybake_provider_remove_storage_target);

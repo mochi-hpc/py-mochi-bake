@@ -25,7 +25,7 @@ targets = provider.list_storage_targets()
 for t in targets:
   print str(t)
 
-provider.remove_all_storage_targets()
-print "number of targets: "+str(provider.count_storage_targets())
+#provider.remove_all_storage_targets()
+#print "number of targets: "+str(provider.count_storage_targets())
 
 mid.wait_for_finalize()

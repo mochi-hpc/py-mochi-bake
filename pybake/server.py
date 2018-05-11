@@ -2,7 +2,7 @@
 # See COPYRIGHT in top-level directory.
 import _pybakeserver
 import pymargo
-from pybake.target import BakeStorageTarget
+from pybake.target import BakeTargetID
 
 def make_pool(name, size, mode):
 	_pybakeserver.make_pool(name, size, mode)
@@ -15,7 +15,7 @@ class BakeProvider(pymargo.Provider):
 
 	def add_storage_target(self, name):
 		tid = _pybakeserver.add_storage_target(self._provider, name)
-		return BakeStorageTarget(tid)
+		return BakeTargetID(tid)
 
 	def remove_storage_target(self, target):
 		return _pybakeserver.remove_storage_target(self._provider, target._tid)
