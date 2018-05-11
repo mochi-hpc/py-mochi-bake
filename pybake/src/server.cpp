@@ -24,9 +24,9 @@ BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID(bake_server_context_t)
 
 namespace bpl = boost::python;
 
-static bake_provider_t pybake_provider_register(margo_instance_id mid, uint8_t mplex_id) {
+static bake_provider_t pybake_provider_register(margo_instance_id mid, uint8_t provider_id) {
     bake_provider_t provider;
-    int ret = bake_provider_register(mid, mplex_id, BAKE_ABT_POOL_DEFAULT, &provider);
+    int ret = bake_provider_register(mid, provider_id, BAKE_ABT_POOL_DEFAULT, &provider);
     if(ret != 0) return NULL;
     else return provider;
 }

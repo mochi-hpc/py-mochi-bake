@@ -35,10 +35,10 @@ static bake_client_t pybake_client_init(margo_instance_id mid) {
 static bake_provider_handle_t pybake_provider_handle_create(
         bake_client_t client,
         hg_addr_t addr,
-        uint8_t mplex_id) {
+        uint8_t provider_id) {
 
     bake_provider_handle_t providerHandle = BAKE_PROVIDER_HANDLE_NULL;
-    bake_provider_handle_create(client, addr, mplex_id, &providerHandle);
+    bake_provider_handle_create(client, addr, provider_id, &providerHandle);
     return providerHandle;
 }
 

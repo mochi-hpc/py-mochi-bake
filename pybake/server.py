@@ -9,9 +9,9 @@ def make_pool(name, size, mode):
 
 class BakeProvider(pymargo.Provider):
 
-	def __init__(self, mid, mplex_id):
-		super(BakeProvider, self).__init__(mid, mplex_id)
-		self._provider = _pybakeserver.register(mid._mid, mplex_id)
+	def __init__(self, mid, provider_id):
+		super(BakeProvider, self).__init__(mid, provider_id)
+		self._provider = _pybakeserver.register(mid._mid, provider_id)
 
 	def add_storage_target(self, name):
 		tid = _pybakeserver.add_storage_target(self._provider, name)
