@@ -128,6 +128,17 @@ class BakeProviderHandle():
         """
         return _pybakeclient.write(self._ph, rid._rid, offset, data)
 
+    def write_numpy(self, rid, offset, array):
+        """
+        Writes a numpy array in a region at a specified offset.
+
+        Args:
+            rid (BakeRegionID): region in which to write.
+            offset (int): offset at which to write.
+            data (numpy.ndarray): numpy array to write.
+        """
+        return _pybakeclient.write_numpy(self._ph, rid._rid, offset, array)
+
     def persist(self, rid):
         """
         Make the changes to a given region persist.
@@ -149,6 +160,24 @@ class BakeProviderHandle():
             data (str): data to write.
         """
         rid = _pybakeclient.create_write_persist(self._ph, bti._tid, data)
+        if(rid is None):
+            return None
+        return BakeRegionID(rid)
+
+    def create_write_persist_numpy(self, bti, array):
+        """
+        Creates a new region, write the numpy array to it at a given offset,
+        and persist the region.
+
+        Args:
+            bti (BakeTargetID): target id in which to create the region.
+            size (int): size of the region to create.
+            offset (int): offset at which to write data in the region.
+            array (numpy.ndarray): numpy array to write.
+        """
+        rid = _pybakeclient.create_write_persist_numpy(self._ph, bti._tid, array)
+        if(rid is None):
+            return None
         return BakeRegionID(rid)
 
     def get_size(self, rid):
@@ -184,6 +213,25 @@ class BakeProviderHandle():
             size = self.get_size(rid) - offset
         return _pybakeclient.read(self._ph, rid._rid, offset, size)
     
+    def read_numpy(self, rid, offset, shape, dtype):
+        """
+        Reads the data contained in a given region, at a given offset,
+        and interpret it as a numpy array of a given shape and datatype.
+        This function will fail if the full array cannot be loaded
+        (e.g. the size of the region from the provided offset is too small
+         compared with the size of the numpy that should result from the call)
+
+        Args:
+            rid (BakeRegionID): region id.
+            offset (int): offset at which to read.
+            shape (tuple): shape of the resulting array.
+            dtype (numpy.dtype): datatype of the resuling array.
+
+        Returns:
+            A numpy array or None if it could not be read.
+        """
+        return _pybakeclient.read_numpy(self._ph, rid._rid, offset, shape, dtype)
+
     def remove(self, rid):
         """
         Remove a region from its target.

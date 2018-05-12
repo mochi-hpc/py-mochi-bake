@@ -10,15 +10,27 @@ os.environ['OPT'] = " ".join(
 		    flag for flag in opt.split() if flag != '-Wstrict-prototypes'
 		)
 
+try:
+    import numpy
+    has_numpy = 1
+except ImportError:
+    has_numpy = 0
+
+if has_numpy == 1:
+    client_libs=['boost_python','margo','bake-client', 'boost_numpy']
+else:
+    client_libs=['boost_python','margo','bake-client']
+
 pybake_server_module = Extension('_pybakeserver', ["pybake/src/server.cpp"],
 		           libraries=['boost_python','margo','bake-server'],
                    include_dirs=['.'],
                    depends=[])
 
 pybake_client_module = Extension('_pybakeclient', ["pybake/src/client.cpp"],
-		           libraries=['boost_python','margo','bake-client'],
+		           libraries=client_libs,
                    include_dirs=['.'],
-                   depends=[])
+                   depends=[],
+                   define_macros=[('HAS_NUMPY', has_numpy)])
 
 pybake_target_module = Extension('_pybaketarget', ["pybake/src/target.cpp"],
                     libraries=['boost_python', 'uuid' ],

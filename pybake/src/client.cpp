@@ -18,6 +18,10 @@
 #include <margo.h>
 #include <bake.h>
 #include <bake-client.h>
+#if HAS_NUMPY
+#include <boost/python/numpy.hpp>
+namespace np = boost::python::numpy;
+#endif
 
 BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID(margo_instance)
 BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID(bake_provider_handle)
@@ -89,6 +93,28 @@ static bpl::object pybake_write(
     else return bpl::object(false);
 }
 
+#if HAS_NUMPY
+static bpl::object pybake_write_numpy(
+        bake_provider_handle_t ph,
+        const bake_region_id_t& rid,
+        uint64_t offset,
+        const np::ndarray& data)
+{
+    if(!(data.get_flags() & np::ndarray::bitflag::V_CONTIGUOUS)) {
+        std::cerr << "[pyBAKE error]: non-contiguous numpy arrays not yet supported" << std::endl;
+        return bpl::object(false);
+    }
+    size_t size = data.get_dtype().get_itemsize();
+    for(int i = 0; i < data.get_nd(); i++) {
+        size *= data.shape(i);
+    }
+    void* buffer = data.get_data();
+    int ret = bake_write(ph, rid, offset, buffer, size);
+    if(ret != 0) return bpl::object(false);
+    else return bpl::object(true);
+}
+#endif
+
 static bpl::object pybake_persist(
         bake_provider_handle_t ph,
         const bake_region_id_t& rid)
@@ -109,6 +135,29 @@ static bpl::object pybake_create_write_persist(
     if(ret == 0) return bpl::object(rid);
     else return bpl::object();
 }
+
+#if HAS_NUMPY
+static bpl::object pybake_create_write_persist_numpy(
+        bake_provider_handle_t ph,
+        bake_target_id_t tid,
+        const np::ndarray& data)
+{
+    bake_region_id_t rid;
+    if(!(data.get_flags() & np::ndarray::bitflag::V_CONTIGUOUS)) {
+        std::cerr << "[pyBAKE error]: non-contiguous numpy arrays not yet supported" << std::endl;
+        return bpl::object();
+    }
+    size_t size = data.get_dtype().get_itemsize();
+    for(int i = 0; i < data.get_nd(); i++) {
+        size *= data.shape(i);
+    }
+    void* buffer = data.get_data();
+    int ret = bake_create_write_persist(ph, tid, 
+            buffer, size, &rid);
+    if(ret == 0) return bpl::object(rid);
+    else return bpl::object();
+}
+#endif
 
 static bpl::object pybake_get_size(
         bake_provider_handle_t ph,
@@ -134,14 +183,35 @@ static bpl::object pybake_read(
     return bpl::object(result);
 }
 
+#if HAS_NUMPY
+static bpl::object pybake_read_numpy(
+        bake_provider_handle_t ph,
+        const bake_region_id_t& rid,
+        uint64_t offset,
+        const bpl::tuple& shape,
+        const np::dtype& dtype)
+{
+    np::ndarray result = np::empty(shape, dtype);
+    size_t size = dtype.get_itemsize();
+    for(int i=0; i < result.get_nd(); i++) 
+        size *= result.shape(i);
+    uint64_t bytes_read;
+    int ret = bake_read(ph, rid, offset, (void*)result.get_data(), size, &bytes_read);
+    if(ret != 0) return bpl::object();
+    if(bytes_read != size) return bpl::object();
+    else return result;
+}
+#endif
+
 BOOST_PYTHON_MODULE(_pybakeclient)
 {
 #define ret_policy_opaque bpl::return_value_policy<bpl::return_opaque_pointer>()
-
+#if HAS_NUMPY
+    np::initialize();
+#endif
     bpl::import("_pybaketarget");
     bpl::opaque<bake_client>();
     bpl::opaque<bake_provider_handle>();
-//    bpl::class_<bake_region_id_t>("bake_region_id", bpl::no_init);
     bpl::def("client_init", &pybake_client_init, ret_policy_opaque);
     bpl::def("client_finalize", &bake_client_finalize);
     bpl::def("provider_handle_create", &pybake_provider_handle_create, ret_policy_opaque);
@@ -158,6 +228,11 @@ BOOST_PYTHON_MODULE(_pybakeclient)
     bpl::def("read", &pybake_read);
     bpl::def("remove", &bake_remove);
     bpl::def("shutdown_service", &bake_shutdown_service);
+#if HAS_NUMPY
+    bpl::def("write_numpy", &pybake_write_numpy);
+    bpl::def("create_write_persist_numpy", &pybake_create_write_persist_numpy);
+    bpl::def("read_numpy", &pybake_read_numpy);
+#endif
 
 #undef ret_policy_opaque
 }
