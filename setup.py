@@ -39,7 +39,7 @@ server_include_dirs.append(".")
 # For target...
 pk = pkgconfig.parse('uuid')
 target_libraries = pk['libraries']
-server_libraries.append('boost_python'+python_version)
+target_libraries.append('boost_python'+python_version)
 target_library_dirs = pk['library_dirs']
 target_include_dirs = pk['include_dirs']
 target_include_dirs.append('.')
