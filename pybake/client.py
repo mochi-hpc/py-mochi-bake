@@ -112,9 +112,11 @@ class BakeProviderHandle():
             region_size (int): size of the region to create.
 
         Returns:
-            A BakeRegionID object representing the region.
+            A BakeRegionID object representing the region. None if an error occured.
         """
         rid = _pybakeclient.create(self._ph, bti._tid, region_size)
+        if(rid == None):
+            return None
         return BakeRegionID(rid)
 
     def write(self, rid, offset, data):
@@ -125,6 +127,8 @@ class BakeProviderHandle():
             rid (BakeRegionID): region in which to write.
             offset (int): offset at which to write.
             data (str): data to write.
+        Returns:
+            True if the data was correctly written, False otherwise.
         """
         return _pybakeclient.write(self._ph, rid._rid, offset, data)
 
@@ -136,6 +140,8 @@ class BakeProviderHandle():
             rid (BakeRegionID): region in which to write.
             offset (int): offset at which to write.
             data (numpy.ndarray): numpy array to write.
+        Returns:
+            True if the data was correctly written, False otherwise.
         """
         return _pybakeclient.write_numpy(self._ph, rid._rid, offset, array)
 
@@ -145,6 +151,8 @@ class BakeProviderHandle():
         
         Args:
             rid (BakeRegionID): region to persist.
+        Returns:
+            True if the region was correctly persisted, False otherwise.
         """
         return _pybakeclient.persist(self._ph, rid._rid)
 
@@ -158,6 +166,8 @@ class BakeProviderHandle():
             size (int): size of the region to create.
             offset (int): offset at which to write data in the region.
             data (str): data to write.
+        Returns:
+            True if the region was correctly written and persisted, False otherwise.
         """
         rid = _pybakeclient.create_write_persist(self._ph, bti._tid, data)
         if(rid is None):
@@ -174,6 +184,8 @@ class BakeProviderHandle():
             size (int): size of the region to create.
             offset (int): offset at which to write data in the region.
             array (numpy.ndarray): numpy array to write.
+        Returns:
+            True if the region was correctly written and persisted, False otherwise.
         """
         rid = _pybakeclient.create_write_persist_numpy(self._ph, bti._tid, array)
         if(rid is None):
@@ -188,7 +200,7 @@ class BakeProviderHandle():
             rid (BakeRegionID): region id.
 
         Returns:
-            The size (ind) of the provided region.
+            The size (int) of the provided region. None in case of error.
         """
         return _pybakeclient.get_size(self._ph, rid._rid)
 
@@ -230,7 +242,7 @@ class BakeProviderHandle():
         Returns:
             A numpy array or None if it could not be read.
         """
-        return _pybakeclient.read_numpy(self._ph, rid._rid, offset, shape, dtype)
+        return _pybakeclient.read_numpy(self._ph, rid._rid, offset, tuple(shape), dtype)
 
     def remove(self, rid):
         """
@@ -239,4 +251,5 @@ class BakeProviderHandle():
         Args:
             rid (BakeRegionID): region to remove.
         """
-        _pybakeclient.remove(self._ph, rid._rid)
+        ret = _pybakeclient.remove(self._ph, rid._rid)
+        return (ret == 0)
