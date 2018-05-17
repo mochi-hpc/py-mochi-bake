@@ -183,6 +183,21 @@ static bpl::object pybake_read(
     return bpl::object(result);
 }
 
+static bpl::object pybake_migrate(
+        bake_provider_handle_t source_ph,
+        const bake_region_id_t& source_rid,
+        bool remove_source,
+        const std::string& dest_addr,
+        uint16_t dest_provider_id,
+        bake_target_id_t dest_target_id) {
+    bake_region_id_t dest_rid;
+    int ret = bake_migrate(source_ph, source_rid,
+            remove_source, dest_addr.c_str(), dest_provider_id,
+            dest_target_id, &dest_rid);
+    if(ret != BAKE_SUCCESS) return bpl::object();
+    return bpl::object(dest_rid);
+}
+
 #if HAS_NUMPY
 static bpl::object pybake_read_numpy(
         bake_provider_handle_t ph,
@@ -227,6 +242,7 @@ BOOST_PYTHON_MODULE(_pybakeclient)
     bpl::def("get_size", &pybake_get_size);
     bpl::def("read", &pybake_read);
     bpl::def("remove", &bake_remove);
+    bpl::def("migrate", &pybake_migrate);
     bpl::def("shutdown_service", &bake_shutdown_service);
 #if HAS_NUMPY
     bpl::def("write_numpy", &pybake_write_numpy);
