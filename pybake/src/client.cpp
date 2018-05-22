@@ -62,7 +62,10 @@ static bpl::object pybake_probe(
     bpl::list result;
     std::vector<bake_target_id_t> targets(max_targets);
     uint64_t num_targets;
-    int ret = bake_probe(ph, max_targets, targets.data(), &num_targets);
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_probe(ph, max_targets, targets.data(), &num_targets);
+    Py_END_ALLOW_THREADS
     if(ret != 0) return bpl::object();
     for(uint64_t i=0; i < num_targets; i++) {
         result.append(bpl::object(targets[i]));
@@ -77,7 +80,10 @@ static bpl::object pybake_create(
 {
     bake_region_id_t rid;
     std::memset(&rid, 0, sizeof(rid));
-    int ret = bake_create(ph, bti, region_size, &rid);
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_create(ph, bti, region_size, &rid);
+    Py_END_ALLOW_THREADS
     if(ret != 0) return bpl::object();
     else return bpl::object(rid);
 }
@@ -88,7 +94,10 @@ static bpl::object pybake_write(
         uint64_t offset,
         const std::string& data)
 {
-    int ret = bake_write(ph, rid, offset, (const void*)data.data(), data.size());
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_write(ph, rid, offset, (const void*)data.data(), data.size());
+    Py_END_ALLOW_THREADS
     if(ret == 0) return bpl::object(true);
     else return bpl::object(false);
 }
@@ -109,7 +118,10 @@ static bpl::object pybake_write_numpy(
         size *= data.shape(i);
     }
     void* buffer = data.get_data();
-    int ret = bake_write(ph, rid, offset, buffer, size);
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_write(ph, rid, offset, buffer, size);
+    Py_END_ALLOW_THREADS
     if(ret != 0) return bpl::object(false);
     else return bpl::object(true);
 }
@@ -119,7 +131,10 @@ static bpl::object pybake_persist(
         bake_provider_handle_t ph,
         const bake_region_id_t& rid)
 {
-    int ret = bake_persist(ph, rid);
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_persist(ph, rid);
+    Py_END_ALLOW_THREADS
     if(ret == 0) return bpl::object(true);
     else return bpl::object(false);
 }
@@ -130,8 +145,11 @@ static bpl::object pybake_create_write_persist(
         const std::string& data)
 {
     bake_region_id_t rid;
-    int ret = bake_create_write_persist(ph, tid, 
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_create_write_persist(ph, tid, 
             data.data(), data.size(), &rid);
+    Py_END_ALLOW_THREADS
     if(ret == 0) return bpl::object(rid);
     else return bpl::object();
 }
@@ -152,8 +170,11 @@ static bpl::object pybake_create_write_persist_numpy(
         size *= data.shape(i);
     }
     void* buffer = data.get_data();
-    int ret = bake_create_write_persist(ph, tid, 
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_create_write_persist(ph, tid, 
             buffer, size, &rid);
+    Py_END_ALLOW_THREADS
     if(ret == 0) return bpl::object(rid);
     else return bpl::object();
 }
@@ -164,7 +185,10 @@ static bpl::object pybake_get_size(
         const bake_region_id_t& rid)
 {
     uint64_t size;
-    int ret = bake_get_size(ph, rid, &size);
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_get_size(ph, rid, &size);
+    Py_END_ALLOW_THREADS
     if(ret == 0) return bpl::object(size);
     else return bpl::object();
 }
@@ -177,7 +201,10 @@ static bpl::object pybake_read(
 {
     std::string result(size, '\0');
     uint64_t bytes_read;
-    int ret = bake_read(ph, rid, offset, (void*)result.data(), size, &bytes_read);
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_read(ph, rid, offset, (void*)result.data(), size, &bytes_read);
+    Py_END_ALLOW_THREADS
     if(ret != 0) return bpl::object();
     result.resize(bytes_read);
     return bpl::object(result);
@@ -191,9 +218,12 @@ static bpl::object pybake_migrate(
         uint16_t dest_provider_id,
         bake_target_id_t dest_target_id) {
     bake_region_id_t dest_rid;
-    int ret = bake_migrate(source_ph, source_rid,
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_migrate(source_ph, source_rid,
             remove_source, dest_addr.c_str(), dest_provider_id,
             dest_target_id, &dest_rid);
+    Py_END_ALLOW_THREADS
     if(ret != BAKE_SUCCESS) return bpl::object();
     return bpl::object(dest_rid);
 }
@@ -211,7 +241,10 @@ static bpl::object pybake_read_numpy(
     for(int i=0; i < result.get_nd(); i++) 
         size *= result.shape(i);
     uint64_t bytes_read;
-    int ret = bake_read(ph, rid, offset, (void*)result.get_data(), size, &bytes_read);
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_read(ph, rid, offset, (void*)result.get_data(), size, &bytes_read);
+    Py_END_ALLOW_THREADS
     if(ret != 0) return bpl::object();
     if(bytes_read != size) return bpl::object();
     else return result;
