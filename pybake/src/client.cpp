@@ -3,14 +3,8 @@
  * 
  * See COPYRIGHT in top-level directory.
  */
-#define BOOST_NO_AUTO_PTR
-#include <boost/python.hpp>
-#include <boost/python/return_opaque_pointer.hpp>
-#include <boost/python/handle.hpp>
-#include <boost/python/enum.hpp>
-#include <boost/python/def.hpp>
-#include <boost/python/module.hpp>
-#include <boost/python/return_value_policy.hpp>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 #include <string>
 #include <vector>
 #include <cstring>
@@ -18,36 +12,38 @@
 #include <margo.h>
 #include <bake.h>
 #include <bake-client.h>
-#if HAS_NUMPY
-#include <boost/python/numpy.hpp>
-namespace np = boost::python::numpy;
-#endif
 
-BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID(margo_instance)
-BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID(bake_provider_handle)
-BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID(bake_client)
-BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID(hg_addr)
+namespace py11 = pybind11;
+namespace np = py11;
 
-namespace bpl = boost::python;
+typedef py11::capsule pymargo_instance_id;
+typedef py11::capsule pymargo_addr;
+typedef py11::capsule pybake_client_t;
+typedef py11::capsule pybake_provider_handle_t;
 
-static bake_client_t pybake_client_init(margo_instance_id mid) {
+#define MID2CAPSULE(__mid)   py11::capsule((void*)(__mid), "margo_instance_id", nullptr)
+#define ADDR2CAPSULE(__addr) py11::capsule((void*)(__addr), "hg_addr_t", nullptr)
+#define BAKEPH2CAPSULE(__bph) py11::capsule((void*)(__bph), "bake_provider_handle_t", nullptr)
+#define BAKECL2CAPSULE(__bcl) py11::capsule((void*)(__bcl), "bake_client_t", nullptr)
+
+static pybake_client_t pybake_client_init(pymargo_instance_id mid) {
     bake_client_t result = BAKE_CLIENT_NULL;
     bake_client_init(mid, &result);
-    return result;
+    return BAKECL2CAPSULE(result);
 }
 
-static bake_provider_handle_t pybake_provider_handle_create(
-        bake_client_t client,
-        hg_addr_t addr,
+static pybake_provider_handle_t pybake_provider_handle_create(
+        pybake_client_t client,
+        pymargo_addr addr,
         uint8_t provider_id) {
 
     bake_provider_handle_t providerHandle = BAKE_PROVIDER_HANDLE_NULL;
     bake_provider_handle_create(client, addr, provider_id, &providerHandle);
-    return providerHandle;
+    return BAKEPH2CAPSULE(providerHandle);
 }
 
 static uint64_t pybake_get_eager_limit(
-        bake_provider_handle_t ph)
+    pybake_provider_handle_t ph)
 {
     uint64_t limit;
     int ret = bake_provider_handle_get_eager_limit(ph, &limit);
@@ -55,26 +51,26 @@ static uint64_t pybake_get_eager_limit(
     return limit;
 }
 
-static bpl::object pybake_probe(
-        bake_provider_handle_t ph,
+static py11::object pybake_probe(
+        pybake_provider_handle_t ph,
         uint64_t max_targets)
 {
-    bpl::list result;
+    py11::list result;
     std::vector<bake_target_id_t> targets(max_targets);
     uint64_t num_targets;
     int ret;
     Py_BEGIN_ALLOW_THREADS
     ret = bake_probe(ph, max_targets, targets.data(), &num_targets);
     Py_END_ALLOW_THREADS
-    if(ret != 0) return bpl::object();
+    if(ret != 0) return py11::object();
     for(uint64_t i=0; i < num_targets; i++) {
-        result.append(bpl::object(targets[i]));
+        result.append(py11::cast(targets[i]));
     }
     return result;
 }
 
-static bpl::object pybake_create(
-        bake_provider_handle_t ph,
+static py11::object pybake_create(
+        pybake_provider_handle_t ph,
         bake_target_id_t bti,
         size_t region_size)
 {
@@ -84,104 +80,107 @@ static bpl::object pybake_create(
     Py_BEGIN_ALLOW_THREADS
     ret = bake_create(ph, bti, region_size, &rid);
     Py_END_ALLOW_THREADS
-    if(ret != 0) return bpl::object();
-    else return bpl::object(rid);
+    if(ret != 0) return py11::none();
+    else return py11::cast(rid);
 }
 
-static bpl::object pybake_write(
-        bake_provider_handle_t ph,
+static py11::object pybake_write(
+        pybake_provider_handle_t ph,
         const bake_region_id_t& rid,
         uint64_t offset,
-        const std::string& data)
+        const py11::bytes& bdata)
 {
     int ret;
     Py_BEGIN_ALLOW_THREADS
+    std::string data = (std::string)bdata;
     ret = bake_write(ph, rid, offset, (const void*)data.data(), data.size());
     Py_END_ALLOW_THREADS
-    if(ret == 0) return bpl::object(true);
-    else return bpl::object(false);
+    if(ret == 0) return py11::cast(true);
+    else return py11::cast(false);
 }
 
 #if HAS_NUMPY
-static bpl::object pybake_write_numpy(
-        bake_provider_handle_t ph,
+static py11::object pybake_write_numpy(
+        pybake_provider_handle_t ph,
         const bake_region_id_t& rid,
         uint64_t offset,
-        const np::ndarray& data)
+        const np::array& data)
 {
-    if(!(data.get_flags() & np::ndarray::bitflag::V_CONTIGUOUS)) {
+    if(!(data.flags() & 
+            (np::array::f_style | np::array::c_style))) {
         std::cerr << "[pyBAKE error]: non-contiguous numpy arrays not yet supported" << std::endl;
-        return bpl::object(false);
+        return py11::cast(false);
     }
-    size_t size = data.get_dtype().get_itemsize();
-    for(int i = 0; i < data.get_nd(); i++) {
+    size_t size = data.dtype().itemsize();
+    for(int i = 0; i < data.ndim(); i++) {
         size *= data.shape(i);
     }
-    void* buffer = data.get_data();
+    const void* buffer = data.data();
     int ret;
     Py_BEGIN_ALLOW_THREADS
     ret = bake_write(ph, rid, offset, buffer, size);
     Py_END_ALLOW_THREADS
-    if(ret != 0) return bpl::object(false);
-    else return bpl::object(true);
+    if(ret != 0) return py11::cast(false);
+    else return py11::cast(true);
 }
 #endif
 
-static bpl::object pybake_persist(
-        bake_provider_handle_t ph,
+static py11::object pybake_persist(
+        pybake_provider_handle_t ph,
         const bake_region_id_t& rid)
 {
     int ret;
     Py_BEGIN_ALLOW_THREADS
     ret = bake_persist(ph, rid);
     Py_END_ALLOW_THREADS
-    if(ret == 0) return bpl::object(true);
-    else return bpl::object(false);
+    if(ret == 0) return py11::cast(true);
+    else return py11::cast(false);
 }
 
-static bpl::object pybake_create_write_persist(
-        bake_provider_handle_t ph,
+static py11::object pybake_create_write_persist(
+        pybake_provider_handle_t ph,
         bake_target_id_t tid,
-        const std::string& data)
+        const py11::bytes& bdata)
 {
     bake_region_id_t rid;
     int ret;
     Py_BEGIN_ALLOW_THREADS
+    std::string data = (std::string)bdata;
     ret = bake_create_write_persist(ph, tid, 
             data.data(), data.size(), &rid);
     Py_END_ALLOW_THREADS
-    if(ret == 0) return bpl::object(rid);
-    else return bpl::object();
+    if(ret == 0) return py11::cast(rid);
+    else return py11::none();
 }
 
 #if HAS_NUMPY
-static bpl::object pybake_create_write_persist_numpy(
-        bake_provider_handle_t ph,
+static py11::object pybake_create_write_persist_numpy(
+        pybake_provider_handle_t ph,
         bake_target_id_t tid,
-        const np::ndarray& data)
+        const np::array& data)
 {
     bake_region_id_t rid;
-    if(!(data.get_flags() & np::ndarray::bitflag::V_CONTIGUOUS)) {
+    if(!(data.flags() & (np::array::f_style | np::array::c_style))) {
         std::cerr << "[pyBAKE error]: non-contiguous numpy arrays not yet supported" << std::endl;
-        return bpl::object();
+        return py11::none();
     }
-    size_t size = data.get_dtype().get_itemsize();
-    for(int i = 0; i < data.get_nd(); i++) {
+    size_t size = data.dtype().itemsize();
+    for(int i = 0; i < data.ndim(); i++) {
         size *= data.shape(i);
     }
-    void* buffer = data.get_data();
+    const void* buffer = data.data();
     int ret;
     Py_BEGIN_ALLOW_THREADS
     ret = bake_create_write_persist(ph, tid, 
             buffer, size, &rid);
     Py_END_ALLOW_THREADS
-    if(ret == 0) return bpl::object(rid);
-    else return bpl::object();
+    if(ret == 0) return py11::cast(rid);
+    else return py11::none();
 }
 #endif
 
-static bpl::object pybake_get_size(
-        bake_provider_handle_t ph,
+static py11::object pybake_get_size(
+        pybake_provider_handle_t ph,
         const bake_region_id_t& rid)
 {
     uint64_t size;
@@ -189,12 +188,12 @@ static bpl::object pybake_get_size(
     Py_BEGIN_ALLOW_THREADS
     ret = bake_get_size(ph, rid, &size);
     Py_END_ALLOW_THREADS
-    if(ret == 0) return bpl::object(size);
-    else return bpl::object();
+    if(ret == 0) return py11::cast(size);
+    else return py11::none();
 }
 
-static bpl::object pybake_read(
-        bake_provider_handle_t ph,
+static py11::object pybake_read(
+        pybake_provider_handle_t ph,
         const bake_region_id_t& rid,
         uint64_t offset,
         size_t size) 
@@ -205,13 +204,13 @@ static bpl::object pybake_read(
     Py_BEGIN_ALLOW_THREADS
     ret = bake_read(ph, rid, offset, (void*)result.data(), size, &bytes_read);
     Py_END_ALLOW_THREADS
-    if(ret != 0) return bpl::object();
+    if(ret != 0) return py11::none();
     result.resize(bytes_read);
-    return bpl::object(result);
+    return py11::bytes(result);
 }
 
-static bpl::object pybake_migrate(
-        bake_provider_handle_t source_ph,
+static py11::object pybake_migrate(
+        pybake_provider_handle_t source_ph,
         const bake_region_id_t& source_rid,
         bool remove_source,
         const std::string& dest_addr,
@@ -224,64 +223,71 @@ static bpl::object pybake_migrate(
             remove_source, dest_addr.c_str(), dest_provider_id,
             dest_target_id, &dest_rid);
     Py_END_ALLOW_THREADS
-    if(ret != BAKE_SUCCESS) return bpl::object();
-    return bpl::object(dest_rid);
+    if(ret != BAKE_SUCCESS) return py11::none();
+    return py11::cast(dest_rid);
 }
 
 #if HAS_NUMPY
-static bpl::object pybake_read_numpy(
-        bake_provider_handle_t ph,
+static py11::object pybake_read_numpy(
+        pybake_provider_handle_t ph,
         const bake_region_id_t& rid,
         uint64_t offset,
-        const bpl::tuple& shape,
+        const py11::tuple& shape,
         const np::dtype& dtype)
 {
-    np::ndarray result = np::empty(shape, dtype);
-    size_t size = dtype.get_itemsize();
-    for(int i=0; i < result.get_nd(); i++) 
+    std::vector<ssize_t> sshape(shape.size());
+    for(unsigned int i=0; i<sshape.size(); i++) sshape[i] = shape[i].cast<ssize_t>();
+    np::array result(dtype, sshape);
+    size_t size = dtype.itemsize();
+    for(int i=0; i < result.ndim(); i++) 
         size *= result.shape(i);
     uint64_t bytes_read;
     int ret;
     Py_BEGIN_ALLOW_THREADS
-    ret = bake_read(ph, rid, offset, (void*)result.get_data(), size, &bytes_read);
+    ret = bake_read(ph, rid, offset, (void*)result.data(), size, &bytes_read);
     Py_END_ALLOW_THREADS
-    if(ret != 0) return bpl::object();
-    if(bytes_read != size) return bpl::object();
+    if(ret != 0) return py11::none();
+    if(bytes_read != size) return py11::none();
     else return result;
 }
 #endif
 
-BOOST_PYTHON_MODULE(_pybakeclient)
+PYBIND11_MODULE(_pybakeclient, m)
 {
-#define ret_policy_opaque bpl::return_value_policy<bpl::return_opaque_pointer>()
 #if HAS_NUMPY
-    np::initialize();
+    try { py11::module::import("numpy"); }
+    catch (...) {
+        std::cerr << "[Py-BAKE] Error: could not import numpy at C++ level" << std::endl;
+        exit(-1);
+    }
 #endif
-    bpl::import("_pybaketarget");
-    bpl::opaque<bake_client>();
-    bpl::opaque<bake_provider_handle>();
-    bpl::def("client_init", &pybake_client_init, ret_policy_opaque);
-    bpl::def("client_finalize", &bake_client_finalize);
-    bpl::def("provider_handle_create", &pybake_provider_handle_create, ret_policy_opaque);
-    bpl::def("provider_handle_ref_incr", &bake_provider_handle_ref_incr);
-    bpl::def("provider_handle_release", &bake_provider_handle_release);
-    bpl::def("get_eager_limit", &pybake_get_eager_limit);
-    bpl::def("set_eager_limit", &bake_provider_handle_set_eager_limit);
-    bpl::def("probe", &pybake_probe);
-    bpl::def("create", &pybake_create);
-    bpl::def("write", &pybake_write);
-    bpl::def("persist", &pybake_persist);
-    bpl::def("create_write_persist", &pybake_create_write_persist);
-    bpl::def("get_size", &pybake_get_size);
-    bpl::def("read", &pybake_read);
-    bpl::def("remove", &bake_remove);
-    bpl::def("migrate", &pybake_migrate);
-    bpl::def("shutdown_service", &bake_shutdown_service);
+    py11::module::import("_pybaketarget");
+    m.def("client_init", &pybake_client_init);
+    m.def("client_finalize", [](pybake_client_t clt) {
+            return bake_client_finalize(clt);} );
+    m.def("provider_handle_create", &pybake_provider_handle_create);
+    m.def("provider_handle_ref_incr", [](pybake_provider_handle_t pbph) {
+            return bake_provider_handle_ref_incr(pbph); });
+    m.def("provider_handle_release", [](pybake_provider_handle_t pbph) {
+            return bake_provider_handle_release(pbph); });
+    m.def("get_eager_limit", &pybake_get_eager_limit);
+    m.def("set_eager_limit", [](pybake_provider_handle_t pbph, uint64_t lim) {
+            return bake_provider_handle_set_eager_limit(pbph, lim); });
+    m.def("probe", &pybake_probe);
+    m.def("create", &pybake_create);
+    m.def("write", &pybake_write);
+    m.def("persist", &pybake_persist);
+    m.def("create_write_persist", &pybake_create_write_persist);
+    m.def("get_size", &pybake_get_size);
+    m.def("read", &pybake_read);
+    m.def("remove", [](pybake_provider_handle_t pbph, bake_region_id_t rid) {
+            return bake_remove(pbph, rid);} );
+    m.def("migrate", &pybake_migrate);
+    m.def("shutdown_service", [](pybake_client_t client, pymargo_addr addr) {
+            return bake_shutdown_service(client, addr); });
 #if HAS_NUMPY
-    bpl::def("write_numpy", &pybake_write_numpy);
-    bpl::def("create_write_persist_numpy", &pybake_create_write_persist_numpy);
-    bpl::def("read_numpy", &pybake_read_numpy);
+    m.def("write_numpy", &pybake_write_numpy);
+    m.def("create_write_persist_numpy", &pybake_create_write_persist_numpy);
+    m.def("read_numpy", &pybake_read_numpy);
 #endif
-
-#undef ret_policy_opaque
 }

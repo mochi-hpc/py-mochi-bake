@@ -10,8 +10,6 @@ import sys
 os.environ['OPT'] = " ".join(
 		    flag for flag in opt.split() if flag != '-Wstrict-prototypes'
 		)
-python_version = str(sys.version_info[0])+str(sys.version_info[1])
-
 # Find out if Numpy is present
 try:
     import numpy
@@ -23,23 +21,18 @@ except ImportError:
 # For client...
 pk = pkgconfig.parse('bake-client')
 client_libraries = pk['libraries']
-client_libraries.append('boost_python'+python_version)
-if(has_numpy == 1):
-    client_libraries.append('boost_numpy'+python_version)
 client_library_dirs = pk['library_dirs']
 client_include_dirs = pk['include_dirs']
 client_include_dirs.append(".")
 # For server...
 pk = pkgconfig.parse('bake-server')
 server_libraries = pk['libraries']
-server_libraries.append('boost_python'+python_version)
 server_library_dirs = pk['library_dirs']
 server_include_dirs = pk['include_dirs']
 server_include_dirs.append(".")
 # For target...
 pk = pkgconfig.parse('uuid')
 target_libraries = pk['libraries']
-target_libraries.append('boost_python'+python_version)
 target_library_dirs = pk['library_dirs']
 target_include_dirs = pk['include_dirs']
 target_include_dirs.append('.')
