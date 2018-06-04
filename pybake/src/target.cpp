@@ -3,14 +3,7 @@
  * 
  * See COPYRIGHT in top-level directory.
  */
-#define BOOST_NO_AUTO_PTR
-#include <boost/python.hpp>
-#include <boost/python/return_opaque_pointer.hpp>
-#include <boost/python/handle.hpp>
-#include <boost/python/enum.hpp>
-#include <boost/python/def.hpp>
-#include <boost/python/module.hpp>
-#include <boost/python/return_value_policy.hpp>
+#include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
 #include <cstring>
@@ -19,43 +12,45 @@
 #include <bake.h>
 #include <bake-server.h>
 
-namespace bpl = boost::python;
+namespace py11 = pybind11;
 
-static std::string pybake_target_id_to_string(bake_target_id_t tid) {
+static py11::bytes pybake_target_id_to_string(bake_target_id_t tid) {
     char id[37];
     uuid_unparse(tid.id, id);
-    return std::string(id);
+    return py11::bytes(std::string(id));
 }
 
-static bpl::object pybake_target_id_from_string(const std::string& tidstr) {
+static py11::object pybake_target_id_from_string(const py11::bytes& btidstr) {
     bake_target_id_t tid;
     memset(tid.id, 0, sizeof(uuid_t));
-    if(tidstr.size() != 36) return bpl::object();
+    std::string tidstr = (std::string)btidstr;
+    if(tidstr.size() != 36) return py11::none();
     int ret = uuid_parse((char*)tidstr.c_str(), tid.id);
-    if(ret == 0) return bpl::object(tid);
-    else return bpl::object();
+    if(ret == 0) return py11::cast(tid);
+    else return py11::none();
 }
 
-static std::string pybake_region_id_to_string(const bake_region_id_t& region_id) {
+static py11::bytes pybake_region_id_to_string(const bake_region_id_t& region_id) {
     std::string result((const char*)(&region_id), sizeof(region_id));
-    return result;
+    return py11::bytes(result);
 }
 
-static bpl::object pybake_region_id_from_string(const std::string& region_str) {
+static py11::object pybake_region_id_from_string(const py11::bytes& bregion_str) {
     bake_region_id_t result;
+    std::string region_str = (std::string)bregion_str;
     memset(&result, 0, sizeof(result));
     if(region_str.size() != sizeof(bake_region_id_t))
-        return bpl::object();
+        return py11::none();
     memcpy(&result, region_str.data(), sizeof(bake_region_id_t));
-    return bpl::object(result);
+    return py11::cast(result);
 }
 
-BOOST_PYTHON_MODULE(_pybaketarget)
+PYBIND11_MODULE(_pybaketarget, m)
 {
-    bpl::class_<bake_target_id_t>("bake_target_id", bpl::no_init)
+    py11::class_<bake_target_id_t>(m,"bake_target_id")
         .def("__str__", pybake_target_id_to_string);
-    bpl::def("target_id_from_string", pybake_target_id_from_string);
-    bpl::class_<bake_region_id_t>("bake_region_id", bpl::no_init)
+    m.def("target_id_from_string", pybake_target_id_from_string);
+    py11::class_<bake_region_id_t>(m,"bake_region_id")
         .def("__str__", pybake_region_id_to_string);
-    bpl::def("region_id_from_string", pybake_region_id_from_string);    
+    m.def("region_id_from_string", pybake_region_id_from_string);    
 }

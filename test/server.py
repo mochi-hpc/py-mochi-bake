@@ -8,7 +8,7 @@ from pybake.server import BakeProvider
 mid = MargoInstance('tcp')
 mid.enable_remote_shutdown()
 mplex_id = 42
-print "Server running at address "+str(mid.addr())+"with mplex_id="+str(mplex_id)
+print "Server running at address "+str(mid.addr())+" with mplex_id="+str(mplex_id)
 
 provider = BakeProvider(mid, mplex_id)
 target   = provider.add_storage_target("/dev/shm/baketarget")
