@@ -254,7 +254,7 @@ class BakeProviderHandle():
         ret = _pybakeclient.remove(self._ph, rid._rid)
         return (ret == 0)
 
-    def migrate(self, source_rid, dest_addr, dest_provider_id, dest_target, remove_source=True):
+    def migrate_region(self, source_rid, dest_addr, dest_provider_id, dest_target, remove_source=True):
         """
         Migrates a give region from its source to a destination designated by
         an address, a provider id, and a target id. This function will also remove
@@ -269,8 +269,26 @@ class BakeProviderHandle():
         Returns:
             The resulting BakeRegionID if successful, None otherwise.
         """
-        ret = _pybakeclient.migrate(self._ph, source_rid._rid, remove_source,
+        ret = _pybakeclient.migrate_region(self._ph, source_rid._rid, remove_source,
                 str(dest_addr), int(dest_provider_id), dest_target._tid)
         if(ret == None):
             return ret
         return BakeRegionID(ret)
+
+    def migrate_target(self, source_tid, dest_addr, dest_provider_id, dest_root, remove_source=True):
+        """
+        Migrates a given target from its source to a destination designated by
+        an address, and a provider id. This function will also remove the original region
+        if remove_source is set to True.
+
+        Args:
+            source_tid (BakeTargetID): source target to move.
+            dest_addr (str): destination address.
+            dest_provider_id (int): destination provider id.
+            dest_root (str): destination root where to migrate the target.
+            remove_source (bool) whether to remove the source region or not.
+        Returns:
+            True if the target was correctly migrated.
+        """
+        return _pybakeclient.migrate_target(self._ph, source_tid._tid, remove_source,
+                str(dest_addr), int(dest_provider_id), str(dest_root))

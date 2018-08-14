@@ -209,7 +209,7 @@ static py11::object pybake_read(
     return py11::bytes(result);
 }
 
-static py11::object pybake_migrate(
+static py11::object pybake_migrate_region(
         pybake_provider_handle_t source_ph,
         const bake_region_id_t& source_rid,
         bool remove_source,
@@ -219,12 +219,29 @@ static py11::object pybake_migrate(
     bake_region_id_t dest_rid;
     int ret;
     Py_BEGIN_ALLOW_THREADS
-    ret = bake_migrate(source_ph, source_rid,
+    ret = bake_migrate_region(source_ph, source_rid,
             remove_source, dest_addr.c_str(), dest_provider_id,
             dest_target_id, &dest_rid);
     Py_END_ALLOW_THREADS
     if(ret != BAKE_SUCCESS) return py11::none();
     return py11::cast(dest_rid);
+}
+
+static py11::object pybake_migrate_target(
+        pybake_provider_handle_t source_ph,
+        const bake_target_id_t& source_tid,
+        bool remove_source,
+        const std::string& dest_addr,
+        uint16_t dest_provider_id,
+        const std::string& dest_root) {
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = bake_migrate_target(source_ph, source_tid,
+            remove_source, dest_addr.c_str(), dest_provider_id,
+            dest_root.c_str());
+    Py_END_ALLOW_THREADS
+    if(ret != BAKE_SUCCESS) return py11::cast(false);
+    return py11::cast(true);
 }
 
 #if HAS_NUMPY
@@ -282,7 +299,8 @@ PYBIND11_MODULE(_pybakeclient, m)
     m.def("read", &pybake_read);
     m.def("remove", [](pybake_provider_handle_t pbph, bake_region_id_t rid) {
             return bake_remove(pbph, rid);} );
-    m.def("migrate", &pybake_migrate);
+    m.def("migrate_region", &pybake_migrate_region);
+    m.def("migrate_target", &pybake_migrate_target);
     m.def("shutdown_service", [](pybake_client_t client, pymargo_addr addr) {
             return bake_shutdown_service(client, addr); });
 #if HAS_NUMPY
