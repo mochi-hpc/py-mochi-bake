@@ -47,10 +47,14 @@ static py11::object pybake_region_id_from_string(const py11::bytes& bregion_str)
 
 PYBIND11_MODULE(_pybaketarget, m)
 {
-    py11::class_<bake_target_id_t>(m,"bake_target_id")
-        .def("__str__", pybake_target_id_to_string);
+    py11::class_<bake_target_id_t>(m,"bake_target_id");
+    // now done at Python level
+    //        .def("__str__", pybake_target_id_to_string);
+    m.def("target_id_to_string", pybake_target_id_to_string);
     m.def("target_id_from_string", pybake_target_id_from_string);
-    py11::class_<bake_region_id_t>(m,"bake_region_id")
-        .def("__str__", pybake_region_id_to_string);
-    m.def("region_id_from_string", pybake_region_id_from_string);    
+    py11::class_<bake_region_id_t>(m,"bake_region_id");
+    // now done at Python level
+    //        .def("__str__", pybake_region_id_to_string);
+    m.def("region_id_from_string", pybake_region_id_from_string);
+    m.def("region_id_to_string", pybake_region_id_to_string);    
 }

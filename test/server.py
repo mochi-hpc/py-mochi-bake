@@ -1,5 +1,8 @@
 # (C) 2018 The University of Chicago
 # See COPYRIGHT in top-level directory.
+import sys
+sys.path.append('.')
+sys.path.append('build/lib.linux-x86_64-2.7')
 from pymargo import MargoInstance
 import pybake
 import pybake.server

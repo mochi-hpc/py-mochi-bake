@@ -22,7 +22,9 @@ class BakeTargetID():
         """
         Converts the BakeTargetID into a string.
         """
-        return str(self._tid)
+        if(self._tid is None):
+            return str(None)
+        return _pybaketarget.target_id_to_string(self._tid)
 
     @staticmethod
     def from_str(string):
@@ -58,7 +60,10 @@ class BakeRegionID():
         """
         Converts the BakeRegionID into a string.
         """
-        return base64.b64encode(str(self._rid))
+        if(self._rid is None):
+            return str(None)
+        a = _pybaketarget.region_id_to_string(self._rid)
+        return base64.b64encode(a)
 
     @staticmethod
     def from_str(string):
