@@ -43,12 +43,14 @@ pybake_server_module = Extension('_pybakeserver', ["pybake/src/server.cpp"],
 		           libraries=server_libraries,
                    library_dirs=server_library_dirs,
                    include_dirs=server_include_dirs,
+                   extra_compile_args=['-std=c++11'],
                    depends=["pybake/src/server.cpp"])
 
 pybake_client_module = Extension('_pybakeclient', ["pybake/src/client.cpp"],
 		           libraries=client_libraries,
                    library_dirs=client_library_dirs,
                    include_dirs=client_include_dirs,
+                   extra_compile_args=['-std=c++11'],
                    depends=["pybake/src/client.cpp"],
                    define_macros=[('HAS_NUMPY', has_numpy)])
 
@@ -56,6 +58,7 @@ pybake_target_module = Extension('_pybaketarget', ["pybake/src/target.cpp"],
                     libraries=target_libraries,
                     library_dirs=target_library_dirs,
                     include_dirs=target_include_dirs,
+                    extra_compile_args=['-std=c++11'],
                     depends=["pybake/src/target.cpp"])
 
 setup(name='pybake',
