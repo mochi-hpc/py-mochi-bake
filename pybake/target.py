@@ -24,7 +24,7 @@ class BakeTargetID():
         """
         if(self._tid is None):
             return str(None)
-        return _pybaketarget.target_id_to_string(self._tid)
+        return str(_pybaketarget.target_id_to_string(self._tid))
 
     @staticmethod
     def from_str(string):
