@@ -24,15 +24,18 @@ class BakeTargetID():
         """
         if(self._tid is None):
             return str(None)
-        return str(_pybaketarget.target_id_to_string(self._tid))
+        byte_string = _pybaketarget.target_id_to_string(self._tid)
+        return byte_string.decode()
 
     @staticmethod
-    def from_str(string):
+    def from_str(byte_string):
         """
         Converts a string representation of the BakeTargetID into
         a concrete BakeTargetID object.
         """
-        tid = _pybaketarget.target_id_from_string(str(string))
+        if(isinstance(byte_string,str)):
+            byte_string = byte_string.encode()
+        tid = _pybaketarget.target_id_from_string(byte_string)
         if(tid is None):
             return None
         else:
@@ -63,15 +66,17 @@ class BakeRegionID():
         if(self._rid is None):
             return str(None)
         a = _pybaketarget.region_id_to_string(self._rid)
-        return base64.b64encode(a)
+        return base64.b64encode(a).decode()
 
     @staticmethod
-    def from_str(string):
+    def from_str(byte_string):
         """
         Converts a string representing a BakeRegionID into a concrete
         BakeRegionID object.
         """
-        rid = _pybaketarget.region_id_from_string(base64.b64decode(str(string)))
+        if(isinstance(byte_string,str)):
+            byte_string = byte_string.encode()
+        rid = _pybaketarget.region_id_from_string(base64.b64decode(byte_string))
         if(rid is None):
             return None
         else:
