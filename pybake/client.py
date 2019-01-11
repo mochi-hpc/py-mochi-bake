@@ -80,7 +80,7 @@ class BakeProviderHandle():
         Set the threshold size bellow which this provider handle
         will embed data within the RPC arguments.
         """ 
-        return _pybakeclient.set_eager_limit(self._ph, limit)
+        _pybakeclient.set_eager_limit(self._ph, limit)
 
     def probe(self, max_targets=0):
         """
@@ -115,8 +115,6 @@ class BakeProviderHandle():
             A BakeRegionID object representing the region. None if an error occured.
         """
         rid = _pybakeclient.create(self._ph, bti._tid, region_size)
-        if(rid == None):
-            return None
         return BakeRegionID(rid)
 
     def write(self, rid, offset, data):
@@ -127,10 +125,8 @@ class BakeProviderHandle():
             rid (BakeRegionID): region in which to write.
             offset (int): offset at which to write.
             data (str): data to write.
-        Returns:
-            True if the data was correctly written, False otherwise.
         """
-        return _pybakeclient.write(self._ph, rid._rid, offset, data)
+        _pybakeclient.write(self._ph, rid._rid, offset, data)
 
     def write_numpy(self, rid, offset, array):
         """
@@ -140,21 +136,39 @@ class BakeProviderHandle():
             rid (BakeRegionID): region in which to write.
             offset (int): offset at which to write.
             data (numpy.ndarray): numpy array to write.
-        Returns:
-            True if the data was correctly written, False otherwise.
         """
-        return _pybakeclient.write_numpy(self._ph, rid._rid, offset, array)
+        _pybakeclient.write_numpy(self._ph, rid._rid, offset, array)
 
-    def persist(self, rid):
+    def proxy_write(self, rid, bulk, size, offset_in_region=0, offset_in_bulk=0, remote_addr=''):
+        """
+        Writes data that is already exposed in a pymargo.bulk.Bulk object.
+
+        Args:
+            rid (BakeRegionID): region in which to write.
+            bulk (Bulk): bulk handle from which to get the data.
+            size (int): size to write.
+            offset_in_region (int): offset at which to write in the region.
+            offset_in_bulk (int): offset from which to read in the bulk object.
+            remote_addr (str): address of the process that created the bulk object.
+        """
+        _pybakeclient.proxy_write(self._ph, rid._rid, offset_in_region,
+                bulk._hg_bulk, offset_in_bulk, remote_addr, size)
+
+    def persist(self, rid, offset=0, size=-1):
         """
         Make the changes to a given region persist.
+        Offset is 0 by default. If size is not provided, PyBake will
+        call get_size to get it, which will throw an exception if Bake
+        has not been compiled with --enable-sizecheck.
         
         Args:
             rid (BakeRegionID): region to persist.
-        Returns:
-            True if the region was correctly persisted, False otherwise.
+            offset (int): offset in the region.
+            size (int): number of bytes to persist.
         """
-        return _pybakeclient.persist(self._ph, rid._rid)
+        if(size < 0):
+            size = self.get_size(rid) - offset
+        _pybakeclient.persist(self._ph, rid._rid, offset, size)
 
     def create_write_persist(self, bti, data):
         """
@@ -167,11 +181,27 @@ class BakeProviderHandle():
             offset (int): offset at which to write data in the region.
             data (str): data to write.
         Returns:
-            True if the region was correctly written and persisted, False otherwise.
+            The created BakeRegionID.
         """
         rid = _pybakeclient.create_write_persist(self._ph, bti._tid, data)
-        if(rid is None):
-            return None
+        return BakeRegionID(rid)
+
+    def proxy_create_write_persist(self, bti, bulk, size, offset_in_bulk=0, remote_addr=''):
+        """
+        Version of create_write_persist that takes an already created bulk handle
+        as argument as well as the address of the process that created it.
+
+        Args:
+            bti (BakeTargetID): target id in which to create the region.
+            bulk (Bulk): bulk handle.
+            size (int): size of the region to create.
+            offset_in_bulk (int): offset in the bulk data.
+            remote_addr (str): Address of the process that created the bulk.
+        Returns:
+            The created BakeRegionID.
+        """
+        rid = _pybakeclient.create_write_persist_proxy(self._ph,
+                bti._tid, bulk._hg_bulk, offset_in_bulk, remote_addr, size)
         return BakeRegionID(rid)
 
     def create_write_persist_numpy(self, bti, array):
@@ -185,22 +215,21 @@ class BakeProviderHandle():
             offset (int): offset at which to write data in the region.
             array (numpy.ndarray): numpy array to write.
         Returns:
-            True if the region was correctly written and persisted, False otherwise.
+            The created BakeRegionID.
         """
         rid = _pybakeclient.create_write_persist_numpy(self._ph, bti._tid, array)
-        if(rid is None):
-            return None
         return BakeRegionID(rid)
 
     def get_size(self, rid):
         """
-        Get the size of a given region.
+        Get the size of a given region. Note thate bake should have been compiler
+        with --enable-sizecheck, otherwise this function will throw an exception.
 
         Args:
             rid (BakeRegionID): region id.
 
         Returns:
-            The size (int) of the provided region. None in case of error.
+            The size (int) of the provided region.
         """
         return _pybakeclient.get_size(self._ph, rid._rid)
 
@@ -211,6 +240,10 @@ class BakeProviderHandle():
         this function will first send an RPC to get the current region size
         and then read from the offset up to the end of the region. If the
         offset is not provided, the entire region is read.
+
+        Note that if bake has not been compiled with --enable-sizecheck,
+        then not providing the size argument will make this function throw
+        an exception.
 
         Args:
             rid (BakeRegionID): region id.
@@ -224,7 +257,24 @@ class BakeProviderHandle():
         if(size < 0):
             size = self.get_size(rid) - offset
         return _pybakeclient.read(self._ph, rid._rid, offset, size)
-    
+   
+    def proxy_read(self, rid, bulk, size, offset_in_region=0, offset_in_bulk=0, remote_addr=''):
+        """
+        Reads the data contained in a given region and pushes it to a provided bulk handle.
+
+        Args:
+            rid (BakeRegionID): region id.
+            bulk (Bulk): bulk handle where to push the data.
+            size (int): size to read.
+            offset_in_region (int): offset in the region where to start reading.
+            offset_in_bulk (int): offset in the bulk where to start placing data.
+            remote_addr (str): address of the process that created the Bulk object.
+        Returns: 
+            the effective number of bytes read.
+        """
+        return _pybakeclient.proxy_read(self._ph, rid._rid, offset_in_region, bulk._hg_bulk,
+                offset_in_bulk, remote_addr, size)
+
     def read_numpy(self, rid, offset, shape, dtype):
         """
         Reads the data contained in a given region, at a given offset,
@@ -251,8 +301,7 @@ class BakeProviderHandle():
         Args:
             rid (BakeRegionID): region to remove.
         """
-        ret = _pybakeclient.remove(self._ph, rid._rid)
-        return (ret == 0)
+        _pybakeclient.remove(self._ph, rid._rid)
 
     def migrate_region(self, source_rid, dest_addr, dest_provider_id, dest_target, remove_source=True):
         """
@@ -271,8 +320,6 @@ class BakeProviderHandle():
         """
         ret = _pybakeclient.migrate_region(self._ph, source_rid._rid, remove_source,
                 str(dest_addr), int(dest_provider_id), dest_target._tid)
-        if(ret == None):
-            return ret
         return BakeRegionID(ret)
 
     def migrate_target(self, source_tid, dest_addr, dest_provider_id, dest_root, remove_source=True):
@@ -290,5 +337,5 @@ class BakeProviderHandle():
         Returns:
             True if the target was correctly migrated.
         """
-        return _pybakeclient.migrate_target(self._ph, source_tid._tid, remove_source,
+        _pybakeclient.migrate_target(self._ph, source_tid._tid, remove_source,
                 str(dest_addr), int(dest_provider_id), str(dest_root))

@@ -4,6 +4,8 @@
  * See COPYRIGHT in top-level directory.
  */
 #include <pybind11/pybind11.h>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <cstring>
@@ -13,6 +15,14 @@
 #include <bake-server.h>
 
 namespace py11 = pybind11;
+
+#define HANDLE_ERROR(__func, __ret) do {\
+    if(__ret != BAKE_SUCCESS) {\
+        std::stringstream ss;\
+        ss << #__func << "() failed (ret = " << __ret << ")";\
+        throw std::runtime_error(ss.str());\
+    }\
+} while(0)
 
 typedef py11::capsule pymargo_instance_id;
 typedef py11::capsule pymargo_addr;
@@ -25,8 +35,8 @@ typedef py11::capsule pybake_provider_t;
 static pybake_provider_t pybake_provider_register(pymargo_instance_id mid, uint8_t provider_id) {
     bake_provider_t provider;
     int ret = bake_provider_register(mid, provider_id, BAKE_ABT_POOL_DEFAULT, &provider);
-    if(ret != 0) return py11::none();
-    else return BAKEPR2CAPSULE(provider);
+    HANDLE_ERROR(bake_provider_register, ret);
+    return BAKEPR2CAPSULE(provider);
 }
 
 static py11::object pybake_provider_add_storage_target(
@@ -36,30 +46,31 @@ static py11::object pybake_provider_add_storage_target(
     std::memset(&target_id, 0, sizeof(target_id));
     int ret = bake_provider_add_storage_target(
                 provider, target_name.c_str(), &target_id);
-    if(ret != 0) {
-        return py11::none();
-    }
+    HANDLE_ERROR(bake_provider_add_storage_target, ret);
     return py11::cast(target_id);
 }
 
-static bool pybake_provider_remove_storage_target(
+static void pybake_provider_remove_storage_target(
         pybake_provider_t provider,
         bake_target_id_t target_id)
 {
-    return 0 == bake_provider_remove_storage_target(provider, target_id);
+    int ret = bake_provider_remove_storage_target(provider, target_id);
+    HANDLE_ERROR(bake_provider_remove_storage_target, ret);
 }
 
-static bool pybake_provider_remove_all_storage_targets(
+static void pybake_provider_remove_all_storage_targets(
         pybake_provider_t provider)
 {
-    return 0 == bake_provider_remove_all_storage_targets(provider);
+    int ret = bake_provider_remove_all_storage_targets(provider);
+    HANDLE_ERROR(bake_provider_remove_all_storage_targets, ret);
 }
 
 static uint64_t pybake_provider_count_storage_targets(
         pybake_provider_t provider)
 {
     uint64_t n = 0;
-    bake_provider_count_storage_targets(provider, &n);
+    int ret = bake_provider_count_storage_targets(provider, &n);
+    HANDLE_ERROR(bake_provider_count_storage_targets, ret);
     return n;
 }
 
@@ -76,9 +87,27 @@ static py11::list pybake_provider_list_storage_targets(
     return list_result;
 }
 
-static bool pybake_make_pool(const std::string& pool_name,
+static void pybake_make_pool(const std::string& pool_name,
                 size_t pool_size, mode_t mode) {
-    return 0 == bake_makepool(pool_name.c_str(), pool_size, mode);
+    int ret = bake_makepool(pool_name.c_str(), pool_size, mode);
+    HANDLE_ERROR(bake_makepool, ret);
+}
+
+static void pybake_provider_set_target_xfer_buffer(
+        pybake_provider_t provider,
+        bake_target_id_t target_id,
+        size_t count,
+        size_t size) {
+    int ret = bake_provider_set_target_xfer_buffer(provider, target_id, count, size);
+    HANDLE_ERROR(bake_provider_set_target_xfer_buffer, ret);
+}
+
+static void pybake_provider_set_target_xfer_concurrency(
+        pybake_provider_t provider,
+        bake_target_id_t target_id,
+        uint32_t num_threads) {
+    int ret = bake_provider_set_target_xfer_concurrency(provider, target_id, num_threads);
+    HANDLE_ERROR(bake_provider_set_target_xfer_concurrency, ret);
 }
 
 PYBIND11_MODULE(_pybakeserver, m)
@@ -91,4 +120,6 @@ PYBIND11_MODULE(_pybakeserver, m)
     m.def("count_storage_targets", &pybake_provider_count_storage_targets);
     m.def("list_storage_targets", &pybake_provider_list_storage_targets);
     m.def("make_pool", &pybake_make_pool);
+    m.def("set_target_xfer_buffer", &pybake_provider_set_target_xfer_buffer);
+    m.def("set_target_xfer_concurrency", &pybake_provider_set_target_xfer_concurrency);
 }
