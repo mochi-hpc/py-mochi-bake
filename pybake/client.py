@@ -29,7 +29,7 @@ class BakeClient():
             addr (MargoAddress): Address of the Bake provider.
             provider_id (int): ID of the provider.
         """
-        ph = _pybakeclient.provider_handle_create(self._client, addr.get_hg_addr(), provider_id)
+        ph = _pybakeclient.provider_handle_create(self._client, addr._hg_addr, provider_id)
         return BakeProviderHandle(ph)
 
     def shutdown_service(self, addr):
@@ -39,7 +39,7 @@ class BakeClient():
         Args:
             addr (MargoAddress): Address of the MargoInstance to shut down.
         """
-        _pybakeclient.shutdown_service(self._client, addr.get_hg_addr())
+        _pybakeclient.shutdown_service(self._client, addr._hg_addr)
 	
     def finalize(self):
         """
