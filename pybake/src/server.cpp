@@ -93,6 +93,7 @@ static void pybake_make_pool(const std::string& pool_name,
     HANDLE_ERROR(bake_makepool, ret);
 }
 
+#if 0
 static void pybake_provider_set_target_xfer_buffer(
         pybake_provider_t provider,
         bake_target_id_t target_id,
@@ -109,6 +110,7 @@ static void pybake_provider_set_target_xfer_concurrency(
     int ret = bake_provider_set_target_xfer_concurrency(provider, target_id, num_threads);
     HANDLE_ERROR(bake_provider_set_target_xfer_concurrency, ret);
 }
+#endif
 
 PYBIND11_MODULE(_pybakeserver, m)
 {
@@ -120,6 +122,8 @@ PYBIND11_MODULE(_pybakeserver, m)
     m.def("count_storage_targets", &pybake_provider_count_storage_targets);
     m.def("list_storage_targets", &pybake_provider_list_storage_targets);
     m.def("make_pool", &pybake_make_pool);
+#if 0
     m.def("set_target_xfer_buffer", &pybake_provider_set_target_xfer_buffer);
     m.def("set_target_xfer_concurrency", &pybake_provider_set_target_xfer_concurrency);
+#endif
 }

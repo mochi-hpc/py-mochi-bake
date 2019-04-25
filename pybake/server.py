@@ -57,15 +57,15 @@ class BakeProvider(pymargo.Provider):
         else:
             return [ BakeTargetID(tid) for tid in l ]
 
-    def set_target_xfer_buffer(self, target, count, size):
-        """
-        Sets the number and size of intermediate buffers that can be used to
-        execute transfers to a specific target.
-        """
-        _pybakeserver.set_target_xfer_buffer(self._provider, target._tid, count, size)
+#    def set_target_xfer_buffer(self, target, count, size):
+#        """
+#        Sets the number and size of intermediate buffers that can be used to
+#        execute transfers to a specific target.
+#        """
+#        _pybakeserver.set_target_xfer_buffer(self._provider, target._tid, count, size)
 
-    def set_target_xfer_concurrency(self, target, num_threads):
-        """
-        Sets the number of ULTs that can be used to execute transfers concurrently.
-        """
-        _pybakeserver.set_target_xfer_concurrency(self._provider, target._tid, num_threads)
+#    def set_target_xfer_concurrency(self, target, num_threads):
+#        """
+#        Sets the number of ULTs that can be used to execute transfers concurrently.
+#        """
+#        _pybakeserver.set_target_xfer_concurrency(self._provider, target._tid, num_threads)
