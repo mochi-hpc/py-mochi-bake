@@ -40,7 +40,7 @@ class BakeClient():
             addr (MargoAddress): Address of the MargoInstance to shut down.
         """
         _pybakeclient.shutdown_service(self._client, addr._hg_addr)
-	
+
     def finalize(self):
         """
         Finalizes the underlying bake_client_t structure.
@@ -60,7 +60,7 @@ class BakeProviderHandle():
         by calling clt.create_provider_handle.
         """
         self._ph = ph
-	
+
     def __del__(self):
         """
         Explicit destructor to call provider_handle_release on the underlying
@@ -126,6 +126,8 @@ class BakeProviderHandle():
             offset (int): offset at which to write.
             data (str): data to write.
         """
+        if(isinstance(data,str)):
+            data = data.encode()
         _pybakeclient.write(self._ph, rid._rid, offset, data)
 
     def write_numpy(self, rid, offset, array):
@@ -183,6 +185,8 @@ class BakeProviderHandle():
         Returns:
             The created BakeRegionID.
         """
+        if(isinstance(data,str)):
+            data = data.encode()
         rid = _pybakeclient.create_write_persist(self._ph, bti._tid, data)
         return BakeRegionID(rid)
 

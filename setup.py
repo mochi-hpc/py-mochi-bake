@@ -24,24 +24,24 @@ except ImportError:
 
 # Find out the dependencies using pkgconfig 
 # For client...
-pk = pkgconfig.parse('bake-client')
-client_libraries = pk['libraries']
-client_library_dirs = pk['library_dirs']
-client_include_dirs = pk['include_dirs']
+bake_client = pkgconfig.parse('bake-client')
+client_libraries = bake_client['libraries']
+client_library_dirs = bake_client['library_dirs']
+client_include_dirs = bake_client['include_dirs']
 client_include_dirs.append(".")
 client_include_dirs.append(get_pybind11_include())
 # For server...
-pk = pkgconfig.parse('bake-server')
-server_libraries = pk['libraries']
-server_library_dirs = pk['library_dirs']
-server_include_dirs = pk['include_dirs']
+bake_server = pkgconfig.parse('bake-server')
+server_libraries = bake_server['libraries']
+server_library_dirs = bake_server['library_dirs']
+server_include_dirs = bake_server['include_dirs']
 server_include_dirs.append(".")
 server_include_dirs.append(get_pybind11_include())
 # For target...
-pk = pkgconfig.parse('uuid')
-target_libraries = pk['libraries']
-target_library_dirs = pk['library_dirs']
-target_include_dirs = pk['include_dirs']
+uuid = pkgconfig.parse('uuid')
+target_libraries = uuid['libraries'] + bake_client['libraries']
+target_library_dirs = uuid['library_dirs'] + bake_client['library_dirs']
+target_include_dirs = uuid['include_dirs'] + bake_client['include_dirs']
 target_include_dirs.append('.')
 target_include_dirs.append(get_pybind11_include())
 pk = pkgconfig.parse('bake-server')

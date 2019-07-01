@@ -18,7 +18,7 @@ class BakeProvider(pymargo.Provider):
         Constructor. Initializes a provider with an Engine and provider_id.
         """
         super(BakeProvider, self).__init__(engine, provider_id)
-        self._provider = _pybakeserver.register(mid._mid, provider_id)
+        self._provider = _pybakeserver.register(engine._mid, provider_id)
 
     def add_storage_target(self, path):
         """

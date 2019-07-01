@@ -16,8 +16,9 @@ namespace py11 = pybind11;
 
 static py11::bytes pybake_target_id_to_string(bake_target_id_t tid) {
     char id[37];
-    uuid_unparse(tid.id, id);
-    return py11::bytes(std::string(id));
+    int ret = bake_target_id_to_string(tid, id, 37);
+    if(ret != BAKE_SUCCESS) return py11::bytes();
+    else return py11::bytes(std::string(id));
 }
 
 static py11::object pybake_target_id_from_string(const py11::bytes& btidstr) {
@@ -25,23 +26,29 @@ static py11::object pybake_target_id_from_string(const py11::bytes& btidstr) {
     memset(tid.id, 0, sizeof(uuid_t));
     std::string tidstr = (std::string)btidstr;
     if(tidstr.size() != 36) return py11::none();
-    int ret = uuid_parse((char*)tidstr.c_str(), tid.id);
-    if(ret == 0) return py11::cast(tid);
+    int ret = bake_target_id_from_string(tidstr.c_str(), &tid);
+    if(ret == BAKE_SUCCESS) return py11::cast(tid);
     else return py11::none();
 }
 
 static py11::bytes pybake_region_id_to_string(const bake_region_id_t& region_id) {
-    std::string result((const char*)(&region_id), sizeof(region_id));
-    return py11::bytes(result);
+    char id[128];
+    memset(id, 0, 128);
+    int ret = bake_region_id_to_string(region_id, id, 128);
+    if(ret == BAKE_SUCCESS) {
+        std::string result(id);
+        return py11::bytes(result);
+    } else {
+        return py11::bytes();
+    }
 }
 
 static py11::object pybake_region_id_from_string(const py11::bytes& bregion_str) {
     bake_region_id_t result;
     std::string region_str = (std::string)bregion_str;
     memset(&result, 0, sizeof(result));
-    if(region_str.size() != sizeof(bake_region_id_t))
-        return py11::none();
-    memcpy(&result, region_str.data(), sizeof(bake_region_id_t));
+    int ret = bake_region_id_from_string(region_str.c_str(), &result);
+    if(ret != BAKE_SUCCESS) return py11::none();
     return py11::cast(result);
 }
 

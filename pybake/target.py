@@ -66,7 +66,7 @@ class BakeRegionID():
         if(self._rid is None):
             return str(None)
         a = _pybaketarget.region_id_to_string(self._rid)
-        return base64.b64encode(a).decode()
+        return a.decode()
 
     @staticmethod
     def from_str(byte_string):
@@ -76,7 +76,7 @@ class BakeRegionID():
         """
         if(isinstance(byte_string,str)):
             byte_string = byte_string.encode()
-        rid = _pybaketarget.region_id_from_string(base64.b64decode(byte_string))
+        rid = _pybaketarget.region_id_from_string(byte_string)
         if(rid is None):
             return None
         else:
