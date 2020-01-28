@@ -2,12 +2,12 @@
 # See COPYRIGHT in top-level directory.
 import sys
 sys.path.append('.')
-sys.path.append('build/lib.linux-x86_64-3.6')
-from pymargo import MargoInstance
+sys.path.append('build/lib.linux-x86_64-3.7')
+from pymargo.core import Engine
 from pybake.target import BakeRegionID
 from pybake.client import *
 
-mid = MargoInstance('tcp')
+mid = Engine('ofi+tcp')
 
 def test():
 
@@ -37,20 +37,20 @@ def test():
     region = BakeRegionID.from_str(regionstr)
     print("reconverting region to string: "+str(region))
     # write into the region
-    ph.write(region, 0, 'A'*16)
-    ph.write(region, 16, 'B'*16)
+    ph.write(target, region, 0, 'A'*16)
+    ph.write(target, region, 16, 'B'*16)
 
     # get size of region
     try:
-        s = ph.get_size(region)
+        s = ph.get_size(target, region)
         print("Region size is "+str(s))
     except:
         print("Getting region size is not supported")
     # persist region
-    ph.persist(region, size=32)
+    ph.persist(target, region, size=32)
 
     # read region
-    result = ph.read(region, 8, 16)
+    result = ph.read(target, region, 8, 16)
     print("Reading region at offset 8, size 16 gives: "+str(result))
 
     del ph

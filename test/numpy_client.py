@@ -1,12 +1,12 @@
 # (C) 2018 The University of Chicago
 # See COPYRIGHT in top-level directory.
 import sys
-from pymargo import MargoInstance
+from pymargo.core import Engine
 from pybake.target import BakeRegionID
 from pybake.client import *
 import numpy as np
 
-mid = MargoInstance('tcp')
+mid = Engine('ofi+tcp')
 
 server_addr = sys.argv[1]
 mplex_id    = int(sys.argv[2])
@@ -34,11 +34,11 @@ print str(arr)
 region = ph.create_write_persist_numpy(target, arr)
 
 # get size of region
-s = ph.get_size(region)
+s = ph.get_size(target, region)
 print "Region size is "+str(s)
 
 # read region
-result = ph.read_numpy(region, 0, shape=(5,6), dtype=arr.dtype)
+result = ph.read_numpy(target, region, 0, shape=(5,6), dtype=arr.dtype)
 # check for equalit
 print "Reading region gave the following numpy array: "
 print str(result)

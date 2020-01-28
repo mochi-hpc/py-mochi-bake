@@ -85,7 +85,7 @@ static py11::object pybake_probe(
 
 static py11::object pybake_create(
         pybake_provider_handle_t ph,
-        bake_target_id_t bti,
+        const bake_target_id_t& bti,
         size_t region_size)
 {
     bake_region_id_t rid;
@@ -100,6 +100,7 @@ static py11::object pybake_create(
 
 static void pybake_write(
         pybake_provider_handle_t ph,
+        const bake_target_id_t& tid,
         const bake_region_id_t& rid,
         uint64_t offset,
         const py11::bytes& bdata)
@@ -107,13 +108,14 @@ static void pybake_write(
     int ret;
     Py_BEGIN_ALLOW_THREADS
     std::string data = (std::string)bdata;
-    ret = bake_write(ph, rid, offset, (const void*)data.data(), data.size());
+    ret = bake_write(ph, tid, rid, offset, (const void*)data.data(), data.size());
     Py_END_ALLOW_THREADS
     HANDLE_ERROR(bake_write, ret);
 }
 
 static void pybake_proxy_write(
         pybake_provider_handle_t ph,
+        const bake_target_id_t& tid,
         const bake_region_id_t& rid,
         uint64_t offset,
         pymargo_bulk bulk,
@@ -124,7 +126,7 @@ static void pybake_proxy_write(
     int ret;
     const char* addr = remote_addr.size() > 0 ? remote_addr.c_str() : NULL;
     Py_BEGIN_ALLOW_THREADS
-    ret = bake_proxy_write(ph, rid, offset, bulk, remote_offset, addr, size);
+    ret = bake_proxy_write(ph, tid, rid, offset, bulk, remote_offset, addr, size);
     Py_END_ALLOW_THREADS
     HANDLE_ERROR(bake_proxy_write, ret);
 }
@@ -132,6 +134,7 @@ static void pybake_proxy_write(
 #if HAS_NUMPY
 static void pybake_write_numpy(
         pybake_provider_handle_t ph,
+        const bake_target_id_t& tid,
         const bake_region_id_t& rid,
         uint64_t offset,
         const np::array& data)
@@ -147,7 +150,7 @@ static void pybake_write_numpy(
     const void* buffer = data.data();
     int ret;
     Py_BEGIN_ALLOW_THREADS
-    ret = bake_write(ph, rid, offset, buffer, size);
+    ret = bake_write(ph, tid, rid, offset, buffer, size);
     Py_END_ALLOW_THREADS
     HANDLE_ERROR(bake_write, ret);
 }
@@ -155,13 +158,14 @@ static void pybake_write_numpy(
 
 static void pybake_persist(
         pybake_provider_handle_t ph,
+        const bake_target_id_t& tid,
         const bake_region_id_t& rid,
         size_t offset,
         size_t size)
 {
     int ret;
     Py_BEGIN_ALLOW_THREADS
-    ret = bake_persist(ph, rid, offset, size);
+    ret = bake_persist(ph, tid, rid, offset, size);
     Py_END_ALLOW_THREADS
     HANDLE_ERROR(bake_persist, ret);
 }
@@ -228,12 +232,13 @@ static py11::object pybake_create_write_persist_numpy(
 
 static py11::object pybake_get_size(
         pybake_provider_handle_t ph,
+        const bake_target_id_t& tid,
         const bake_region_id_t& rid)
 {
     uint64_t size;
     int ret;
     Py_BEGIN_ALLOW_THREADS
-    ret = bake_get_size(ph, rid, &size);
+    ret = bake_get_size(ph, tid, rid, &size);
     Py_END_ALLOW_THREADS
     HANDLE_ERROR(bake_get_size, ret);
     return py11::cast(size);
@@ -241,6 +246,7 @@ static py11::object pybake_get_size(
 
 static py11::object pybake_read(
         pybake_provider_handle_t ph,
+        const bake_target_id_t& tid,
         const bake_region_id_t& rid,
         uint64_t offset,
         size_t size) 
@@ -249,7 +255,7 @@ static py11::object pybake_read(
     uint64_t bytes_read;
     int ret;
     Py_BEGIN_ALLOW_THREADS
-    ret = bake_read(ph, rid, offset, (void*)result.data(), size, &bytes_read);
+    ret = bake_read(ph, tid, rid, offset, (void*)result.data(), size, &bytes_read);
     Py_END_ALLOW_THREADS
     HANDLE_ERROR(bake_read, ret);
     result.resize(bytes_read);
@@ -258,6 +264,7 @@ static py11::object pybake_read(
 
 static size_t pybake_proxy_read(
         pybake_provider_handle_t ph,
+        const bake_target_id_t& tid,
         const bake_region_id_t& rid,
         uint64_t region_offset,
         pymargo_bulk bulk,
@@ -269,7 +276,7 @@ static size_t pybake_proxy_read(
     int ret;
     const char* addr = remote_addr.size() == 0 ? NULL : remote_addr.c_str();
     Py_BEGIN_ALLOW_THREADS
-    ret = bake_proxy_read(ph, rid, region_offset, bulk, remote_offset, addr, size, &bytes_read);
+    ret = bake_proxy_read(ph, tid, rid, region_offset, bulk, remote_offset, addr, size, &bytes_read);
     Py_END_ALLOW_THREADS
     HANDLE_ERROR(bake_proxy_read, ret);
     return bytes_read;
@@ -277,6 +284,7 @@ static size_t pybake_proxy_read(
 
 static py11::object pybake_migrate_region(
         pybake_provider_handle_t source_ph,
+        const bake_target_id_t& tid,
         const bake_region_id_t& source_rid,
         size_t region_size,
         bool remove_source,
@@ -286,7 +294,7 @@ static py11::object pybake_migrate_region(
     bake_region_id_t dest_rid;
     int ret;
     Py_BEGIN_ALLOW_THREADS
-    ret = bake_migrate_region(source_ph, source_rid, region_size,
+    ret = bake_migrate_region(source_ph, tid, source_rid, region_size,
             remove_source, dest_addr.c_str(), dest_provider_id,
             dest_target_id, &dest_rid);
     Py_END_ALLOW_THREADS
@@ -313,6 +321,7 @@ static void pybake_migrate_target(
 #if HAS_NUMPY
 static py11::object pybake_read_numpy(
         pybake_provider_handle_t ph,
+        const bake_target_id_t& tid,
         const bake_region_id_t& rid,
         uint64_t offset,
         const py11::tuple& shape,
@@ -327,7 +336,7 @@ static py11::object pybake_read_numpy(
     uint64_t bytes_read;
     int ret;
     Py_BEGIN_ALLOW_THREADS
-    ret = bake_read(ph, rid, offset, (void*)result.data(), size, &bytes_read);
+    ret = bake_read(ph, tid, rid, offset, (void*)result.data(), size, &bytes_read);
     Py_END_ALLOW_THREADS
     HANDLE_ERROR(bake_read, ret);
     if(bytes_read != size) {
@@ -372,8 +381,8 @@ PYBIND11_MODULE(_pybakeclient, m)
     m.def("get_size", &pybake_get_size);
     m.def("read", &pybake_read);
     m.def("proxy_read", &pybake_proxy_read);
-    m.def("remove", [](pybake_provider_handle_t pbph, bake_region_id_t rid) {
-            int ret = bake_remove(pbph, rid); HANDLE_ERROR(bake_remove, ret); } );
+    m.def("remove", [](pybake_provider_handle_t pbph, const bake_target_id_t& tid, const bake_region_id_t& rid) {
+            int ret = bake_remove(pbph, tid, rid); HANDLE_ERROR(bake_remove, ret); } );
     m.def("migrate_region", &pybake_migrate_region);
     m.def("migrate_target", &pybake_migrate_target);
     m.def("shutdown_service", [](pybake_client_t client, pymargo_addr addr) {
