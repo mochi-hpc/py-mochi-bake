@@ -7,10 +7,6 @@ import os
 import os.path
 import sys
 
-def get_pybind11_include():
-    path = os.path.dirname(pybind11.__file__)
-    return '/'.join(path.split('/')[0:-4] + ['include'])
-
 (opt,) = get_config_vars('OPT')
 os.environ['OPT'] = " ".join(
 		    flag for flag in opt.split() if flag != '-Wstrict-prototypes'
@@ -29,21 +25,21 @@ client_libraries = bake_client['libraries']
 client_library_dirs = bake_client['library_dirs']
 client_include_dirs = bake_client['include_dirs']
 client_include_dirs.append(".")
-client_include_dirs.append(get_pybind11_include())
+client_include_dirs.append(pybind11.get_include())
 # For server...
 bake_server = pkgconfig.parse('bake-server')
 server_libraries = bake_server['libraries']
 server_library_dirs = bake_server['library_dirs']
 server_include_dirs = bake_server['include_dirs']
 server_include_dirs.append(".")
-server_include_dirs.append(get_pybind11_include())
+server_include_dirs.append(pybind11.get_include())
 # For target...
 uuid = pkgconfig.parse('uuid')
 target_libraries = uuid['libraries'] + bake_client['libraries']
 target_library_dirs = uuid['library_dirs'] + bake_client['library_dirs']
 target_include_dirs = uuid['include_dirs'] + bake_client['include_dirs']
 target_include_dirs.append('.')
-target_include_dirs.append(get_pybind11_include())
+target_include_dirs.append(pybind11.get_include())
 pk = pkgconfig.parse('bake-server')
 target_include_dirs.extend(pk['include_dirs'])
 
