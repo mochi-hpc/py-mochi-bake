@@ -28,9 +28,9 @@ typedef py11::capsule pymargo_instance_id;
 typedef py11::capsule pymargo_addr;
 typedef py11::capsule pybake_provider_t;
 
-#define MID2CAPSULE(__mid)   py11::capsule((void*)(__mid), "margo_instance_id", nullptr)
-#define ADDR2CAPSULE(__addr) py11::capsule((void*)(__addr), "hg_addr_t", nullptr)
-#define BAKEPR2CAPSULE(__bpr) py11::capsule((void*)(__bpr), "bake_provider_t", nullptr)
+#define MID2CAPSULE(__mid)   py11::capsule((void*)(__mid), "margo_instance_id")
+#define ADDR2CAPSULE(__addr) py11::capsule((void*)(__addr), "hg_addr_t")
+#define BAKEPR2CAPSULE(__bpr) py11::capsule((void*)(__bpr), "bake_provider_t")
 
 static pybake_provider_t pybake_provider_register(
         pymargo_instance_id mid, uint8_t provider_id) {

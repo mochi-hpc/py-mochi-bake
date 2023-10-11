@@ -32,11 +32,11 @@ typedef py11::capsule pybake_provider_handle_t;
         }\
     } while(0)
 
-#define MID2CAPSULE(__mid)   py11::capsule((void*)(__mid), "margo_instance_id", nullptr)
-#define ADDR2CAPSULE(__addr) py11::capsule((void*)(__addr), "hg_addr_t", nullptr)
-#define BULK2CAPSULE(__blk)  py11::capsule((void*)(__blk), "hg_bulk_t", nullptr)
-#define BAKEPH2CAPSULE(__bph) py11::capsule((void*)(__bph), "bake_provider_handle_t", nullptr)
-#define BAKECL2CAPSULE(__bcl) py11::capsule((void*)(__bcl), "bake_client_t", nullptr)
+#define MID2CAPSULE(__mid)   py11::capsule((void*)(__mid), "margo_instance_id")
+#define ADDR2CAPSULE(__addr) py11::capsule((void*)(__addr), "hg_addr_t")
+#define BULK2CAPSULE(__blk)  py11::capsule((void*)(__blk), "hg_bulk_t")
+#define BAKEPH2CAPSULE(__bph) py11::capsule((void*)(__bph), "bake_provider_handle_t")
+#define BAKECL2CAPSULE(__bcl) py11::capsule((void*)(__bcl), "bake_client_t")
 
 static pybake_client_t pybake_client_init(pymargo_instance_id mid) {
     bake_client_t result = BAKE_CLIENT_NULL;
